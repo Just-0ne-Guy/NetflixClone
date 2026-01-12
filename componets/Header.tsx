@@ -24,7 +24,16 @@ function Header() {
   },[])
 
   return (
-    <header className={`${isScrolled && 'bg-[#141414]'}`}>
+    <header className={`
+    fixed top-0 z-50 w-full
+    flex items-center justify-between px-4 py-4 lg:px-10 lg:py-6
+    transition-all duration-300
+    ${
+      isScrolled
+        ? "bg-[#141414]/90 backdrop-blur"
+        : "bg-gradient-to-b from-black/80 to-transparent via-black/40 to-transparent"
+    }
+  `}>
       <div className="flex items-center space-x-2 md:space-x-10">
         <img
           src="https://rb.gy/ulxxee"

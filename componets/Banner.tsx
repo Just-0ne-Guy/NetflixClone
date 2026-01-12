@@ -1,11 +1,13 @@
 "use client";
 
+import { modalState, movieState } from "@/atoms/modalAtom";
 import { baseUrl } from "@/constants/movie";
 import { Movie } from "@/typings";
 import Image from "next/image";
 import { useEffect, useState } from "react";
 import { AiOutlineInfoCircle } from "react-icons/ai";
 import { FaPlay } from "react-icons/fa";
+import { useRecoilState } from "recoil";
 
 interface Props {
   netflixOriginals: Movie[];
@@ -13,6 +15,8 @@ interface Props {
 
 function Banner({ netflixOriginals }: Props) {
   const [movie, setMovie] = useState<Movie | null>(null);
+  const [showModal, setShowModal] = useRecoilState(modalState)
+  const [currentMovie, setCurrentMovie] = useRecoilState(movieState)
 
   useEffect(() => {
     setMovie(
@@ -45,7 +49,11 @@ function Banner({ netflixOriginals }: Props) {
             Play
           </button>
           <button className="banner__button bg-[gray]/60 text-white">
-            <AiOutlineInfoCircle className="h-5 w-5 md:h-7 md:w-7" />
+            <AiOutlineInfoCircle className="h-5 w-5 md:h-7 md:w-7" 
+            onClick={() => {
+            setCurrentMovie(movie)
+            setShowModal(true)
+          }}/>
             More Info
           </button>
         </div>
