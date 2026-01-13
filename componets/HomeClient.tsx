@@ -1,8 +1,8 @@
 "use client";
 
 import Modal from "@/componets/Modal";
-import { useRecoilValue } from "recoil";
-import { modalState } from "@/atoms/modalAtom";
+// import { useRecoilValue } from "recoil";
+// import { modalState } from "@/atoms/modalAtom";
 import Banner from "@/componets/Banner";
 import Header from "@/componets/Header";
 import Row from "@/componets/Row";
@@ -20,7 +20,7 @@ interface Props {
 }
 
 export default function HomeClient(props: Props) {
-  const showModal = useRecoilValue(modalState);
+//   const showModal = useRecoilValue(modalState);
 
   return (
     <div className="relative h-screen lg:h-[140vh]">
@@ -38,7 +38,7 @@ export default function HomeClient(props: Props) {
         </section>
       </main>
 
-      {showModal && <Modal />}
+      {/* {showModal && <Modal />} */}
     </div>
   );
 }

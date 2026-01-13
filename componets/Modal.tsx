@@ -1,15 +1,13 @@
-"use client";
 
 import { modalState } from "@/atoms/modalAtom";
 import MuiModal from "@mui/material/Modal";
-import { useRecoilValue } from "recoil";
+import { useRecoilState } from "recoil";
 
 function Modal() {
-  const showModal = useRecoilValue(modalState);
+  const [showModal, setShowModal] = useRecoilState(modalState);
 
-  const handleClose = () => {
-    setShowModal(false);
-  };
+  const handleClose = () => setShowModal(false);
+
   return (
     <MuiModal open={showModal} onClose={handleClose}>
       <>Modal</>
@@ -17,4 +15,4 @@ function Modal() {
   );
 }
 
-export default Modal;
+export default Modal
