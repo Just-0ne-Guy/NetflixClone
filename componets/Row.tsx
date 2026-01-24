@@ -1,63 +1,86 @@
-'use client'
+"use client";
 
 import { Movie } from "@/typings";
 import { ChevronLeftIcon, ChevronRightIcon } from "@heroicons/react/24/outline";
+import { useEffect, useRef, useState } from "react";
 import Thumbnail from "./Thumbnail";
-import { useRef, useState } from "react";
 
 interface Props {
   title: string;
-  //   movie: Movie | DocumentData[]
-
   movies: Movie[];
 }
 
-function Row({ title, movies }: Props) {
+export default function Row({ title, movies }: Props) {
   const rowRef = useRef<HTMLDivElement>(null);
   const [isMoved, setIsMoved] = useState(false);
 
-  const handleClick = (direction: string) => {
-    setIsMoved(true);
+  useEffect(() => {
+    if (rowRef.current) rowRef.current.scrollLeft = 0;
+  }, []);
 
-    if (rowRef.current) {
-      const { scrollLeft, clientWidth } = rowRef.current;
+  const handleClick = (direction: "left" | "right") => {
+    if (!rowRef.current) return;
 
-      const scrollTo =
-        direction === "left"
-          ? scrollLeft - clientWidth
-          : scrollLeft + clientWidth;
+    const { scrollLeft, clientWidth } = rowRef.current;
+    const step = Math.round(clientWidth * 0.75);
 
-        rowRef.current.scrollTo({left: scrollTo, behavior: "smooth"})
-    }
+    const scrollTo =
+      direction === "left" ? scrollLeft - step : scrollLeft + step;
+
+    rowRef.current.scrollTo({ left: scrollTo, behavior: "smooth" });
+  };
+
+  const handleScroll = () => {
+    if (!rowRef.current) return;
+    setIsMoved(rowRef.current.scrollLeft > 5);
   };
 
   return (
-    <div className="h-40 space-y-0.5 md:space-y-2">
-      <h2 className="w-56 cursor-pointer text-sm font-semibold text-[#e5e5e5] transition duration-200 hover:text-white">
+    <section className="space-y-2 md:space-y-4">
+      {/* title + row use same gutter */}
+      <h2 className="px-6 md:px-10 lg:px-16 text-sm font-semibold text-[#e5e5e5] transition hover:text-white md:text-2xl">
         {title}
       </h2>
-      <div className="group relative md:-ml-2">
+
+      <div className="group relative">
         <ChevronLeftIcon
-          className={`absolute top-0 bottom-0 left-2 z-40 m-auto h-9 w-9 cursor-pointer opacity-0 transition hover:scale-125 group-hover:opacity-100 ${!isMoved && 'hidden'}`}
+          className={[
+            "absolute left-3 top-0 bottom-0 z-40 m-auto h-9 w-9",
+            "cursor-pointer text-white/90",
+            "opacity-0 transition hover:scale-125 group-hover:opacity-100",
+            !isMoved ? "hidden" : "",
+          ].join(" ")}
           onClick={() => handleClick("left")}
         />
 
+        {/* scroller stays aligned with the title */}
         <div
           ref={rowRef}
-          className="flex items-center space-x-0.5 overflow-x-scroll overflow-y-hidden scrollbar-hide md:space-x-2.5 md:p-2"
+          onScroll={handleScroll}
+          className={[
+            "flex items-center space-x-0.5 md:space-x-2.5",
+            "overflow-x-scroll overflow-y-hidden scrollbar-hide scroll-smooth",
+            "snap-x snap-mandatory",
+            "px-6 md:px-10 lg:px-16",
+            "py-2",
+          ].join(" ")}
         >
           {movies.map((movie) => (
-            <Thumbnail key={movie.id} movie={movie} />
+            <div key={movie.id} className="shrink-0 snap-start">
+              <Thumbnail movie={movie} />
+            </div>
           ))}
         </div>
 
         <ChevronRightIcon
-          className={`absolute top-0 bottom-0 right-2 z-40 m-auto h-9 w-9 cursor-pointer opacity-0 transition hover:scale-125 group-hover:opacity-100`}
+          className={[
+            "absolute right-3 top-0 bottom-0 z-40 m-auto h-9 w-9",
+            "cursor-pointer text-white/90",
+            "opacity-0 transition hover:scale-125 group-hover:opacity-100",
+          ].join(" ")}
           onClick={() => handleClick("right")}
         />
       </div>
-    </div>
+    </section>
   );
 }
-
-export default Row;

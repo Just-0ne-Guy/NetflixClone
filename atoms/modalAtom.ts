@@ -1,6 +1,6 @@
 "use client"
 
-import { DocumentData } from 'firebase'
+import { DocumentData } from 'firebase/firestore'
 import { atom } from 'recoil'
 import { Movie } from '../typings'
 

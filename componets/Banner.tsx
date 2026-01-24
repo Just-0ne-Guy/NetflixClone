@@ -1,13 +1,12 @@
 "use client";
 
-import { modalState, movieState } from "@/atoms/modalAtom";
 import { baseUrl } from "@/constants/movie";
 import { Movie } from "@/typings";
 import Image from "next/image";
 import { useEffect, useState } from "react";
 import { AiOutlineInfoCircle } from "react-icons/ai";
 import { FaPlay } from "react-icons/fa";
-import { useRecoilState } from "recoil";
+import { useModalStore } from "../store/modalStore";
 
 interface Props {
   netflixOriginals: Movie[];
@@ -15,8 +14,7 @@ interface Props {
 
 function Banner({ netflixOriginals }: Props) {
   const [movie, setMovie] = useState<Movie | null>(null);
-  const [showModal, setShowModal] = useRecoilState(modalState)
-  const [currentMovie, setCurrentMovie] = useRecoilState(movieState)
+  const openModal = useModalStore((s) => s.open);
 
   useEffect(() => {
     setMovie(
@@ -25,7 +23,7 @@ function Banner({ netflixOriginals }: Props) {
   }, [netflixOriginals]);
 
   return (
-    <div className=" flex flex-col space-y-2 py-16 md:space-y-4 lg:h-[65vh] lg:justify-end lg:pb-12">
+    <div className=" flex flex-col space-y-2 pt-24 pb-20 md:space-y-4 lg:h-[70vh] lg:justify-end lg:pb-16">
       <div className="absolute top-0 left-0 -z-10 h-[95vh] w-full">
         <Image
           src={`${baseUrl}${movie?.backdrop_path || movie?.poster_path}`}
@@ -48,12 +46,13 @@ function Banner({ netflixOriginals }: Props) {
             <FaPlay className="h-4 w-4 text-black md:h-5 md:w-5" />
             Play
           </button>
-          <button className="banner__button bg-[gray]/60 text-white">
-            <AiOutlineInfoCircle className="h-5 w-5 md:h-7 md:w-7" 
+          <button
+            className="banner__button bg-[gray]/60 text-white"
             onClick={() => {
-            setCurrentMovie(movie)
-            setShowModal(true)
-          }}/>
+              if (movie) openModal(movie);
+            }}
+          >
+            <AiOutlineInfoCircle className="h-5 w-5 md:h-7 md:w-7" />
             More Info
           </button>
         </div>
