@@ -94,6 +94,9 @@ export default function Modal() {
       return;
     }
 
+    // ✅ capture movie so TS knows it's not null inside async
+    const currentMovie = movie;
+
     setTrailerKey(null);
 
     const controller = new AbortController();
@@ -101,10 +104,10 @@ export default function Modal() {
 
     async function run() {
       try {
-        const endpointType = movie.media_type === "tv" ? "tv" : "movie";
+        const endpointType = currentMovie.media_type === "tv" ? "tv" : "movie";
 
         const res = await fetch(
-          `https://api.themoviedb.org/3/${endpointType}/${movie.id}?api_key=${apiKey}&language=en-US&append_to_response=videos`,
+          `https://api.themoviedb.org/3/${endpointType}/${currentMovie.id}?api_key=${apiKey}&language=en-US&append_to_response=videos`,
           { signal: controller.signal },
         );
 
@@ -116,7 +119,6 @@ export default function Modal() {
           results.find((v) => v.site === "YouTube" && v.type === "Teaser") ||
           results.find((v) => v.site === "YouTube");
 
-        // ignore stale fetches if user clicked another movie fast
         if (fetchIdRef.current !== myFetchId) return;
 
         setTrailerKey(pick?.key ?? null);
@@ -128,7 +130,7 @@ export default function Modal() {
     run();
 
     return () => controller.abort();
-  }, [movie?.id, movie?.media_type]);
+  }, [movie]);
 
   // handle autoplay timing so we don’t hit play/pause race
   useEffect(() => {
