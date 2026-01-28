@@ -1,9 +1,11 @@
 
 import HomeClient from "@/componets/HomeClient";
-import { Movie } from "@/typings";
 import requests from "@/utils/requests";
+import payments from "@/lib/stripe";
+import { getProducts, Product } from "@stripe/firestore-stripe-payments";
+import { Movie } from "@/typings";
 
-interface Props {
+type HomeProps = {
   netflixOriginals: Movie[];
   trendingNow: Movie[];
   topRated: Movie[];
@@ -12,15 +14,21 @@ interface Props {
   horrorMovies: Movie[];
   romanceMovies: Movie[];
   documentaries: Movie[];
-}
+  products: Product[];
+};
 
-async function getMovies(url: string) {
+async function fetcher(url: string) {
   const res = await fetch(url, { cache: "no-store" });
   if (!res.ok) throw new Error(`Failed to fetch: ${url}`);
   return res.json();
 }
 
-export default async function Home() {
+export default async function Page() {
+  const products = await getProducts(payments, {
+    includePrices: true,
+    activeOnly: true,
+  }).catch(() => []);
+
   const [
     netflixOriginals,
     trendingNow,
@@ -31,25 +39,26 @@ export default async function Home() {
     romanceMovies,
     documentaries,
   ] = await Promise.all([
-    getMovies(requests.fetchNetflixOriginals),
-    getMovies(requests.fetchTrending),
-    getMovies(requests.fetchTopRated),
-    getMovies(requests.fetchActionMovies),
-    getMovies(requests.fetchComedyMovies),
-    getMovies(requests.fetchHorrorMovies),
-    getMovies(requests.fetchRomanceMovies),
-    getMovies(requests.fetchDocumentaries),
+    fetcher(requests.fetchNetflixOriginals),
+    fetcher(requests.fetchTrending),
+    fetcher(requests.fetchTopRated),
+    fetcher(requests.fetchActionMovies),
+    fetcher(requests.fetchComedyMovies),
+    fetcher(requests.fetchHorrorMovies),
+    fetcher(requests.fetchRomanceMovies),
+    fetcher(requests.fetchDocumentaries),
   ]);
 
-  const props: Props = {
-    netflixOriginals: netflixOriginals.results,
-    trendingNow: trendingNow.results,
-    topRated: topRated.results,
-    actionMovies: actionMovies.results,
-    comedyMovies: comedyMovies.results,
-    horrorMovies: horrorMovies.results,
-    romanceMovies: romanceMovies.results,
-    documentaries: documentaries.results,
+  const props: HomeProps = {
+    netflixOriginals: netflixOriginals?.results ?? [],
+    trendingNow: trendingNow?.results ?? [],
+    topRated: topRated?.results ?? [],
+    actionMovies: actionMovies?.results ?? [],
+    comedyMovies: comedyMovies?.results ?? [],
+    horrorMovies: horrorMovies?.results ?? [],
+    romanceMovies: romanceMovies?.results ?? [],
+    documentaries: documentaries?.results ?? [],
+    products: Array.isArray(products) ? products : [],
   };
 
   return <HomeClient {...props} />;
