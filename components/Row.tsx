@@ -35,14 +35,10 @@ export default function Row({ title, movies }: Props) {
     setIsMoved(rowRef.current.scrollLeft > 5);
   };
 
-  // ✅ bump this gutter to push rows more to the right
-  const gutter = "px-10 md:px-14 lg:px-20";
-
   return (
-    <section className="space-y-2 md:space-y-4">
+    <section className="space-y-2 md:space-y-4 max-w-[calc(100vw-100px)] mx-auto">
       <h2
         className={[
-          gutter,
           "text-sm font-semibold text-[#e5e5e5] transition hover:text-white md:text-2xl",
         ].join(" ")}
       >
@@ -63,22 +59,16 @@ export default function Row({ title, movies }: Props) {
         />
 
         <div
-  ref={rowRef}
-  onScroll={handleScroll}
-  className="
-    flex items-center space-x-0.5 md:space-x-2.5
-    overflow-x-scroll overflow-y-hidden scrollbar-hide scroll-smooth
-    snap-x snap-mandatory
-    pl-[80px]
-    py-2
-  "
->
-  {movies.map((movie) => (
-    <div key={movie.id} className="shrink-0 snap-start">
-      <Thumbnail movie={movie} />
-    </div>
-  ))}
-</div>
+          ref={rowRef}
+          onScroll={handleScroll}
+          className="flex items-center space-x-0.5 md:space-x-2.5 overflow-x-scroll overflow-y-hidden scrollbar-hide scroll-smooth snap-x snap-mandatory py-2"
+        >
+          {movies.map((movie) => (
+            <div key={movie.id} className="shrink-0 snap-start">
+              <Thumbnail movie={movie} />
+            </div>
+          ))}
+        </div>
 
 
         <ChevronRightIcon
