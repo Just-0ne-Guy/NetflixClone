@@ -33,6 +33,7 @@ export default function HomeClient(props: Props) {
   const { isSubscribed, loading: subLoading } = useSubscriptionStatus(user);
   const isOpen = useModalStore((s) => s.isOpen);
   const list = useList(user?.uid)
+  const myList = (list as unknown as Movie[]) || [];
 
   useEffect(() => {
     if (!authLoading && user && !subLoading && !isSubscribed) {
@@ -65,7 +66,7 @@ export default function HomeClient(props: Props) {
           <Row title="Trending Now" movies={props.trendingNow} />
           <Row title="Top Rated" movies={props.topRated} />
           <Row title="Action Thrillers" movies={props.actionMovies} />
-          {list.length > 0 && <Row title="My List" movies={list} />}
+          {myList.length > 0 && <Row title="My List" movies={myList} />}
           <Row title="Comedies" movies={props.comedyMovies} />
           <Row title="Scary Movies" movies={props.horrorMovies} />
           <Row title="Romance Movies" movies={props.romanceMovies} />
