@@ -35,48 +35,59 @@ export default function Row({ title, movies }: Props) {
     setIsMoved(rowRef.current.scrollLeft > 5);
   };
 
+  // ✅ bump this gutter to push rows more to the right
+  const gutter = "px-10 md:px-14 lg:px-20";
+
   return (
     <section className="space-y-2 md:space-y-4">
-      {/* title + row use same gutter */}
-      <h2 className="px-6 md:px-10 lg:px-16 text-sm font-semibold text-[#e5e5e5] transition hover:text-white md:text-2xl">
+      <h2
+        className={[
+          gutter,
+          "text-sm font-semibold text-[#e5e5e5] transition hover:text-white md:text-2xl",
+        ].join(" ")}
+      >
         {title}
       </h2>
 
       <div className="group relative">
         <ChevronLeftIcon
           className={[
-            "absolute left-3 top-0 bottom-0 z-40 m-auto h-9 w-9",
+            "absolute top-0 bottom-0 z-40 m-auto h-9 w-9",
             "cursor-pointer text-white/90",
             "opacity-0 transition hover:scale-125 group-hover:opacity-100",
+            // keep arrows inside the same gutter
+            "left-6 md:left-6 lg:left-6",
             !isMoved ? "hidden" : "",
           ].join(" ")}
           onClick={() => handleClick("left")}
         />
 
-        {/* scroller stays aligned with the title */}
         <div
-          ref={rowRef}
-          onScroll={handleScroll}
-          className={[
-            "flex items-center space-x-0.5 md:space-x-2.5",
-            "overflow-x-scroll overflow-y-hidden scrollbar-hide scroll-smooth",
-            "snap-x snap-mandatory",
-            "px-6 md:px-10 lg:px-16",
-            "py-2",
-          ].join(" ")}
-        >
-          {movies.map((movie) => (
-            <div key={movie.id} className="shrink-0 snap-start">
-              <Thumbnail movie={movie} />
-            </div>
-          ))}
-        </div>
+  ref={rowRef}
+  onScroll={handleScroll}
+  className="
+    flex items-center space-x-0.5 md:space-x-2.5
+    overflow-x-scroll overflow-y-hidden scrollbar-hide scroll-smooth
+    snap-x snap-mandatory
+    pl-[80px]
+    py-2
+  "
+>
+  {movies.map((movie) => (
+    <div key={movie.id} className="shrink-0 snap-start">
+      <Thumbnail movie={movie} />
+    </div>
+  ))}
+</div>
+
 
         <ChevronRightIcon
           className={[
-            "absolute right-3 top-0 bottom-0 z-40 m-auto h-9 w-9",
+            "absolute top-0 bottom-0 z-40 m-auto h-9 w-9",
             "cursor-pointer text-white/90",
             "opacity-0 transition hover:scale-125 group-hover:opacity-100",
+            // keep arrows inside the same gutter
+            "right-6 md:right-6 lg:right-6",
           ].join(" ")}
           onClick={() => handleClick("right")}
         />

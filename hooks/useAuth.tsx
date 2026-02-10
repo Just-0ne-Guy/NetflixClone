@@ -10,7 +10,7 @@ import {
 
 import { useRouter } from "next/navigation";
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
-import { auth } from "../firebase";
+import { auth } from "@/lib/firebase";
 
 interface IAuth {
   user: User | null;
@@ -45,11 +45,9 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     () =>
       onAuthStateChanged(auth, (user) => {
         if (user) {
-          // Logged in...
           setUser(user);
           setLoading(false);
         } else {
-          // Not logged in...
           setUser(null);
           setLoading(true);
           router.push("/login");

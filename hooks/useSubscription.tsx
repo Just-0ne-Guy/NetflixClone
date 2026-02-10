@@ -1,71 +1,41 @@
 "use client";
 
+import { onCurrentUserSubscriptionUpdate, Subscription } from "@stripe/firestore-stripe-payments";
+import { User } from "firebase/auth";
 import { useEffect, useState } from "react";
-import type { User } from "firebase/auth";
-import {
-  collection,
-  getFirestore,
-  limit,
-  onSnapshot,
-  query,
-  where,
-} from "firebase/firestore";
-import app from "../firebase";
+import payments from "@/lib/stripe";
 
-type ActiveSub = {
-  id: string;
-  status?: string;
-  role?: string;
-  current_period_end?: any;
-  current_period_start?: any;
-  [key: string]: any;
-};
-
-/**
- * returns:
- * - null while loading
- * - undefined if no active subscription
- * - subscription object if active
- */
-export default function useSubscription(user: User | null | undefined) {
-  const [subscription, setSubscription] = useState<ActiveSub | null | undefined>(
-    null
-  );
+export default function useSubscription(user: User | null) {
+  const [subscription, setSubscription] = useState<Subscription | null>(null);
+  const [loading, setLoading] = useState<boolean>(!!user);
 
   useEffect(() => {
-    setSubscription(null);
-
-    if (!user?.uid) {
-      setSubscription(undefined);
+    // if logged out
+    if (!user) {
+      setSubscription(null);
+      setLoading(false);
       return;
     }
 
-    const db = getFirestore(app);
+    setLoading(true);
 
-    const q = query(
-      collection(db, "customers", user.uid, "subscriptions"),
-      where("status", "in", ["trialing", "active"]),
-      limit(1)
-    );
+    const unsub = onCurrentUserSubscriptionUpdate(payments, (snapshot) => {
+      const active =
+        snapshot.subscriptions.find(
+          (s) => s.status === "active" || s.status === "trialing"
+        ) ?? null;
 
-    const unsub = onSnapshot(
-      q,
-      (snap) => {
-        if (snap.empty) {
-          setSubscription(undefined);
-          return;
-        }
+      setSubscription(active);
+      setLoading(false);
+    });
 
-        const docSnap = snap.docs[0];
-        setSubscription({ id: docSnap.id, ...docSnap.data() } as ActiveSub);
-      },
-      () => {
-        setSubscription(undefined);
-      }
-    );
-
-    return () => unsub();
+    return () => {
+      // onCurrentUserSubscriptionUpdate returns an unsubscribe function
+      try {
+        unsub?.();
+      } catch {}
+    };
   }, [user?.uid]);
 
-  return subscription;
+  return { subscription, loading };
 }

@@ -6,11 +6,16 @@ import Image from "next/image";
 import ReactPlayer from "react-player";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { FaPlay } from "react-icons/fa";
-import { AiOutlinePlus, AiOutlineLike } from "react-icons/ai";
+import { AiOutlineLike } from "react-icons/ai";
 import { HiOutlineVolumeOff, HiOutlineVolumeUp } from "react-icons/hi";
+import { CheckIcon, PlusIcon } from "@heroicons/react/24/outline";
 
+import useList from "@/hooks/useList";
+import useAuth from "@/hooks/useAuth";
+import { addToMyList, removeFromMyList } from "@/lib/myList";
 import { useModalStore } from "../store/modalStore";
 import { GENRE_MAP } from "../constants/genres";
+import { Movie } from "@/typings";
 
 type TMDBVideo = {
   key: string;
@@ -24,26 +29,23 @@ export default function Modal() {
   const movie = useModalStore((s) => s.movie);
   const close = useModalStore((s) => s.close);
 
-  const [trailerKey, setTrailerKey] = useState<string | null>(null);
+  const { user } = useAuth();
+  const list = useList(user?.uid);
 
-  // prevents autoplay race + lets user click to start if browser blocks autoplay
+  const [trailerKey, setTrailerKey] = useState<string | null>(null);
   const [canAutoPlay, setCanAutoPlay] = useState(false);
   const [userStarted, setUserStarted] = useState(false);
   const [isMuted, setIsMuted] = useState(true);
 
-  // avoid setting state after unmount / rapid switching
   const fetchIdRef = useRef(0);
 
-  // ✅ always safe (no hooks inside hooks)
   const genres = useMemo<string[]>(() => {
     if (!movie) return [];
 
-    // if movie already includes "genres" objects
     if ("genres" in (movie as any) && Array.isArray((movie as any).genres)) {
       return (movie as any).genres.map((g: any) => g.name).filter(Boolean);
     }
 
-    // fallback to TMDB genre_ids
     return (movie.genre_ids || [])
       .map((id: number) => GENRE_MAP[id])
       .filter(Boolean);
@@ -72,16 +74,27 @@ export default function Modal() {
     return genres.length ? genres.join(", ") : "—";
   }, [genres]);
 
-  // ✅ build video url once
   const videoUrl = useMemo(() => {
     if (!trailerKey) return null;
-
-    // embed is typically more reliable than watch?v=
-    // (we’ll also pass playerVars below)
     return `https://www.youtube.com/embed/${trailerKey}`;
   }, [trailerKey]);
 
-  // fetch trailer key when movie changes
+  // ✅ My List toggle state
+  const inList = useMemo(() => {
+    if (!movie) return false;
+    return list?.some((m: any) => String(m.id) === String(movie.id)) ?? false;
+  }, [list, movie]);
+
+  const toggleMyList = async () => {
+    if (!user?.uid || !movie) return;
+
+    if (inList) {
+      await removeFromMyList(user.uid, movie.id);
+    } else {
+      await addToMyList(user.uid, movie as Movie);
+    }
+  };
+
   useEffect(() => {
     if (!movie) {
       setTrailerKey(null);
@@ -94,9 +107,7 @@ export default function Modal() {
       return;
     }
 
-    // ✅ capture movie so TS knows it's not null inside async
     const currentMovie = movie;
-
     setTrailerKey(null);
 
     const controller = new AbortController();
@@ -128,11 +139,9 @@ export default function Modal() {
     }
 
     run();
-
     return () => controller.abort();
   }, [movie]);
 
-  // handle autoplay timing so we don’t hit play/pause race
   useEffect(() => {
     setCanAutoPlay(false);
     setUserStarted(false);
@@ -154,14 +163,12 @@ export default function Modal() {
       slotProps={{ backdrop: { className: "bg-black/80" } }}
     >
       <Fade in={isOpen} timeout={220}>
-        {/* click-away wrapper */}
         <div
           className="fixed inset-0 flex items-center justify-center p-4"
           onMouseDown={(e) => {
             if (e.target === e.currentTarget) close();
           }}
         >
-          {/* modal panel */}
           <div
             className={[
               "relative w-full max-w-5xl overflow-hidden rounded-md bg-[#181818] shadow-2xl",
@@ -170,7 +177,6 @@ export default function Modal() {
             ].join(" ")}
             onMouseDown={(e) => e.stopPropagation()}
           >
-            {/* close */}
             <button
               onClick={close}
               className="absolute right-4 top-4 z-30 grid h-10 w-10 place-items-center rounded-full bg-black/70 text-white hover:bg-black/90 cursor-pointer"
@@ -179,9 +185,7 @@ export default function Modal() {
               ✕
             </button>
 
-            {/* scroll only inside modal */}
             <div className="max-h-[92vh] overflow-y-auto">
-              {/* hero */}
               <div className="relative aspect-video w-full bg-black">
                 {videoUrl ? (
                   <div className="absolute inset-0">
@@ -198,7 +202,6 @@ export default function Modal() {
                       playsinline
                       stopOnUnmount
                       onError={(e) => console.log("ReactPlayer error:", e)}
-                      // types can be picky in some setups — casting keeps TS quiet
                       config={
                         {
                           youtube: {
@@ -213,8 +216,6 @@ export default function Modal() {
                         } as any
                       }
                     />
-
-                    {/* click-to-play overlay (helps if autoplay is blocked) */}
                   </div>
                 ) : backdrop ? (
                   <Image
@@ -229,11 +230,9 @@ export default function Modal() {
                   <div className="h-full w-full bg-zinc-800" />
                 )}
 
-                {/* overlays */}
                 <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-[#181818] via-black/15 to-black/10" />
                 <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-black/70 via-black/25 to-transparent" />
 
-                {/* left content */}
                 <div className="absolute bottom-10 left-6 z-10 max-w-[70%] md:left-10">
                   <p className="text-xs font-bold tracking-[0.35em] text-red-600">
                     NETFLIX
@@ -254,16 +253,33 @@ export default function Modal() {
                   </p>
 
                   <div className="mt-6 flex items-center gap-3">
-                    <button className="inline-flex items-center gap-2 rounded bg-white px-6 py-2 text-sm font-bold text-black hover:opacity-90 cursor-pointer">
+                    <button
+                      className="inline-flex items-center gap-2 rounded bg-white px-6 py-2 text-sm font-bold text-black hover:opacity-90 cursor-pointer"
+                      onClick={() => setUserStarted(true)}
+                    >
                       <FaPlay className="h-4 w-4" />
                       Play
                     </button>
 
+                    {/* ✅ My List toggle */}
                     <button
-                      className="grid h-11 w-11 place-items-center rounded-full border border-white/40 bg-black/30 hover:border-white cursor-pointer"
-                      aria-label="add"
+                      type="button"
+                      onClick={toggleMyList}
+                      className={[
+                        "grid h-11 w-11 place-items-center rounded-full border cursor-pointer transition",
+                        inList
+                          ? "bg-white border-white hover:bg-white/90"
+                          : "bg-black/30 border-white/40 hover:border-white",
+                      ].join(" ")}
+                      aria-label={
+                        inList ? "Remove from My List" : "Add to My List"
+                      }
                     >
-                      <AiOutlinePlus className="h-6 w-6" />
+                      {inList ? (
+                        <CheckIcon className="h-6 w-6 text-black" />
+                      ) : (
+                        <PlusIcon className="h-6 w-6 text-white" />
+                      )}
                     </button>
 
                     <button
@@ -275,7 +291,6 @@ export default function Modal() {
                   </div>
                 </div>
 
-                {/* mute icon (visual only) */}
                 <button
                   onClick={() => setIsMuted((m) => !m)}
                   className="absolute bottom-6 right-6 z-10 grid h-11 w-11 place-items-center rounded-full border border-white/40 bg-black/30 hover:border-white cursor-pointer"
@@ -289,7 +304,6 @@ export default function Modal() {
                 </button>
               </div>
 
-              {/* details */}
               <div className="px-6 pb-10 pt-6 md:px-10">
                 <div className="flex flex-wrap items-center gap-3 text-sm text-white/80">
                   {year && <span className="text-white/90">{year}</span>}
@@ -343,7 +357,6 @@ export default function Modal() {
                   </div>
                 </div>
               </div>
-              {/* end details */}
             </div>
           </div>
         </div>
