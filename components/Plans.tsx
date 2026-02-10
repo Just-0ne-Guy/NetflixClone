@@ -6,11 +6,11 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { CheckIcon } from "@heroicons/react/24/outline";
 import useAuth from "../hooks/useAuth";
-import { loadCheckout } from "../lib/stripe";
 import Loader from "./Loader";
 
 import { addDoc, collection, onSnapshot } from "firebase/firestore";
 import { db } from "@/lib/firebase";
+import Image from "next/image";
 
 async function startCheckout(uid: string, priceId: string) {
   const colRef = collection(db, "customers", uid, "checkout_sessions");
@@ -179,7 +179,7 @@ function Plans({ products: initialProducts = [] }: Props) {
       <header className="sticky top-0 z-50 bg-white/95 backdrop-blur-md shadow-md py-4">
         <div className="mx-auto flex w-full max-w-6xl items-center justify-between px-6 py-2">
           <Link href="/" className="cursor-pointer">
-            <img
+            <Image
               src="https://rb.gy/ulxxee"
               alt="Netflix"
               className="h-7 w-auto object-contain"
