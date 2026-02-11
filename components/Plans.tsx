@@ -7,10 +7,34 @@ import { useEffect, useMemo, useState } from "react";
 import { CheckIcon } from "@heroicons/react/24/outline";
 import useAuth from "../hooks/useAuth";
 import Loader from "./Loader";
-
 import { addDoc, collection, onSnapshot } from "firebase/firestore";
 import { db } from "@/lib/firebase";
-import Image from "next/image";
+
+type CheckoutSessionDoc = {
+  url?: string;
+  error?: { message?: string };
+};
+
+type PlanPrice = {
+  id: string;
+  unit_amount?: number | null;
+  active?: boolean;
+  currency?: string;
+  interval?: string;
+  interval_count?: number;
+  trial_period_days?: number | null;
+  [key: string]: unknown;
+};
+
+type PlanProduct = {
+  id: string;
+  name?: string;
+  description?: string | null;
+  active?: boolean;
+  metadata?: Record<string, string>;
+  prices?: PlanPrice[];
+  [key: string]: unknown;
+};
 
 async function startCheckout(uid: string, priceId: string) {
   const colRef = collection(db, "customers", uid, "checkout_sessions");
@@ -23,7 +47,7 @@ async function startCheckout(uid: string, priceId: string) {
 
   return new Promise<void>((resolve, reject) => {
     const unsub = onSnapshot(docRef, (snap) => {
-      const data = snap.data() as any;
+      const data = (snap.data() ?? {}) as CheckoutSessionDoc;
 
       if (data?.error) {
         unsub();
@@ -52,7 +76,8 @@ function safeNum(value: unknown, fallback: number) {
 function Plans({ products: initialProducts = [] }: Props) {
   const { logout, user } = useAuth();
   const [isBillingLoading, setBillingLoading] = useState(false);
-  const [products, setProducts] = useState<any[]>(initialProducts);
+  const [products, setProducts] = useState<PlanProduct[]>(initialProducts);
+
   const [productsLoading, setProductsLoading] = useState(
     initialProducts.length === 0,
   );
@@ -73,7 +98,7 @@ function Plans({ products: initialProducts = [] }: Props) {
           query(collection(db, "products"), where("active", "==", true)),
         );
 
-        const items: any[] = [];
+        const items: PlanProduct[] = [];
 
         for (const p of productsSnap.docs) {
           // get active prices for each product
@@ -85,14 +110,18 @@ function Plans({ products: initialProducts = [] }: Props) {
             ),
           );
 
+          const productData = p.data() as Record<string, unknown>;
+
+          const prices: PlanPrice[] = pricesSnap.docs.map((d) => ({
+            id: d.id,
+            ...(d.data() as Record<string, unknown>),
+          }));
+
           items.push({
             id: p.id,
-            ...(p.data() as any),
-            prices: pricesSnap.docs.map((d) => ({
-              id: d.id,
-              ...(d.data() as any),
-            })),
-          });
+            ...productData,
+            prices,
+          } as PlanProduct);
         }
 
         if (!cancelled) setProducts(items);
@@ -179,7 +208,7 @@ function Plans({ products: initialProducts = [] }: Props) {
       <header className="sticky top-0 z-50 bg-white/95 backdrop-blur-md shadow-md py-4">
         <div className="mx-auto flex w-full max-w-6xl items-center justify-between px-6 py-2">
           <Link href="/" className="cursor-pointer">
-            <Image
+            <img
               src="https://rb.gy/ulxxee"
               alt="Netflix"
               className="h-7 w-auto object-contain"
@@ -381,7 +410,13 @@ function Plans({ products: initialProducts = [] }: Props) {
                 onClick={subscribeToPlan}
                 type="button"
               >
-                {isBillingLoading ? <Loader colorClass="text-white" /> : "Next"}
+                {isBillingLoading ? (
+                  <div className="text-white flex justify-center items-center">
+                    <Loader />
+                  </div>
+                ) : (
+                  "Next"
+                )}
               </button>
             </div>
           </>

@@ -1,55 +1,40 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
 import { collection, getDocs, query, where } from "firebase/firestore";
-
 import { db } from "@/lib/firebase";
-import useAuth from "@/hooks/useAuth";
 import Plans from "@/components/Plans";
 
-async function checkIsSubscribed(uid: string) {
-  // Stripe extension writes subscriptions here:
-  // customers/{uid}/subscriptions/{subId}
-  const subsSnap = await getDocs(collection(db, "customers", uid, "subscriptions"));
 
-  if (subsSnap.empty) return false;
 
-  return subsSnap.docs.some((d) => {
-    const data = d.data() as any;
-    return data?.status === "active" || data?.status === "trialing";
-  });
-}
+type Price = {
+  id: string;
+  unit_amount: number | null;
+  currency: string;
+  recurring?: {
+    interval?: string;
+    interval_count?: number;
+  };
+  metadata?: Record<string, string>;
+};
+
+type Product = {
+  id: string;
+  name?: string;
+  active?: boolean;
+  description?: string | null;
+  metadata?: Record<string, string>;
+  prices: Price[];
+};
 
 export default function PlansLoader() {
-  const router = useRouter();
-  const { user, loading: authLoading } = useAuth();
-
-  const [products, setProducts] = useState<any[]>([]);
+  const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    let mounted = true;
 
+  useEffect(() => {
     (async () => {
       try {
-        // wait for auth to resolve
-        if (authLoading) return;
-
-        // if no user, keep them here (or redirect to /login if you have one)
-        if (!user) {
-          if (mounted) setLoading(false);
-          return;
-        }
-
-        // 1) gate: if subscribed -> go home
-        const subscribed = await checkIsSubscribed(user.uid);
-        if (subscribed) {
-          router.replace("/");
-          return;
-        }
-
-        // 2) not subscribed -> load plans
         const prodSnap = await getDocs(
           query(collection(db, "products"), where("active", "==", true))
         );
@@ -57,31 +42,29 @@ export default function PlansLoader() {
         const result = await Promise.all(
           prodSnap.docs.map(async (d) => {
             const pricesSnap = await getDocs(
-              query(
-                collection(db, "products", d.id, "prices"),
-                where("active", "==", true)
-              )
+              collection(db, "products", d.id, "prices")
             );
 
-            const prices = pricesSnap.docs.map((p) => ({ id: p.id, ...p.data() }));
-            return { id: d.id, ...d.data(), prices };
+            const prices: Price[] = pricesSnap.docs.map((p) => {
+              const data = p.data() as Omit<Price, "id">;
+              return { id: p.id, ...data };
+            });
+
+            const productData = d.data() as Omit<Product, "id" | "prices">;
+            return { id: d.id, ...productData, prices };
           })
         );
 
-        if (mounted) setProducts(result);
+        setProducts(result);
       } catch (e) {
-        console.error("plans loader failed:", e);
+        console.error("direct firestore products fetch failed:", e);
       } finally {
-        if (mounted) setLoading(false);
+        setLoading(false);
       }
     })();
+  }, []);
 
-    return () => {
-      mounted = false;
-    };
-  }, [authLoading, user?.uid, router]);
-
-  if (authLoading || loading) return <div className="p-6">loading...</div>;
+  if (loading) return <div className="p-6 text-white/80">loading...</div>;
 
   return <Plans products={products} />;
 }
