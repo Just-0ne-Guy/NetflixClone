@@ -16,35 +16,48 @@ import { db } from "@/lib/firebase";
 import useAuth from "@/hooks/useAuth";
 import AccountAvatarMenu from "@/components/AccountAvatarMenu";
 import { goToBillingPortal } from "@/lib/stripe";
-import Loader from "@/components/Loader";
+import type { Timestamp } from "firebase/firestore";
+
+
+type LooseTimestamp = Timestamp | { seconds: number } | number | Date | null | undefined;
+
+type SubscriptionItem = {
+  price?: { id?: string };
+  quantity?: number;
+  [key: string]: unknown;
+};
 
 type SubDoc = {
   status?: string;
-  current_period_end?: any; // timestamp
-  created?: any;
-  items?: any[];
+  current_period_end?: LooseTimestamp;
+  created?: LooseTimestamp;
+  items?: SubscriptionItem[];
 };
 
-function toDateLabel(ts: any) {
-  // supports Firestore Timestamp or unix seconds
+function toDateLabel(ts: LooseTimestamp) {
   try {
-    if (!ts) return "—";
+    if (!ts) return "--";
+
     const d =
-      typeof ts?.toDate === "function"
-        ? ts.toDate()
+      ts instanceof Date
+        ? ts
         : typeof ts === "number"
           ? new Date(ts * 1000)
-          : ts?.seconds
-            ? new Date(ts.seconds * 1000)
-            : null;
-    if (!d) return "—";
+          : typeof (ts as { toDate?: unknown })?.toDate === "function"
+            ? (ts as Timestamp).toDate()
+            : typeof (ts as { seconds?: unknown })?.seconds === "number"
+              ? new Date((ts as { seconds: number }).seconds * 1000)
+              : null;
+
+    if (!d) return "--";
+
     return d.toLocaleDateString(undefined, {
       year: "numeric",
       month: "long",
       day: "numeric",
     });
   } catch {
-    return "—";
+    return "--";
   }
 }
 
@@ -79,7 +92,6 @@ export default function AccountPage() {
           return;
         }
 
-        // pick any active/trialing, otherwise newest
         const docs = snap.docs.map((d) => d.data() as SubDoc);
         const active = docs.find(
           (d) => d.status === "active" || d.status === "trialing",

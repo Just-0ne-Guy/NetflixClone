@@ -9,6 +9,7 @@ import { FaPlay } from "react-icons/fa";
 import { AiOutlineLike } from "react-icons/ai";
 import { HiOutlineVolumeOff, HiOutlineVolumeUp } from "react-icons/hi";
 import { CheckIcon, PlusIcon } from "@heroicons/react/24/outline";
+import type { ReactPlayerProps } from "react-player";
 
 import useList from "@/hooks/useList";
 import useAuth from "@/hooks/useAuth";
@@ -23,6 +24,7 @@ type TMDBVideo = {
   type: string;
   name?: string;
 };
+type HasId = { id: string | number };
 
 export default function Modal() {
   const isOpen = useModalStore((s) => s.isOpen);
@@ -42,8 +44,14 @@ export default function Modal() {
   const genres = useMemo<string[]>(() => {
     if (!movie) return [];
 
-    if ("genres" in (movie as any) && Array.isArray((movie as any).genres)) {
-      return (movie as any).genres.map((g: any) => g.name).filter(Boolean);
+    const maybe = movie as unknown as { genres?: Array<{ name?: string }> };
+
+    if (Array.isArray(maybe.genres)) {
+      return maybe.genres
+        .map((g) => g?.name)
+        .filter(
+          (name): name is string => typeof name === "string" && name.length > 0,
+        );
     }
 
     return (movie.genre_ids || [])
@@ -79,10 +87,24 @@ export default function Modal() {
     return `https://www.youtube.com/embed/${trailerKey}`;
   }, [trailerKey]);
 
-  // ✅ My List toggle state
+  function isHasId(x: unknown): x is HasId {
+    return typeof x === "object" && x !== null && "id" in x;
+  }
+
   const inList = useMemo(() => {
     if (!movie) return false;
-    return list?.some((m: any) => String(m.id) === String(movie.id)) ?? false;
+
+    const movieId =
+      typeof movie === "object" && movie !== null && "id" in movie
+        ? String((movie as HasId).id)
+        : "";
+
+    if (!movieId) return false;
+
+    return (
+      list?.some((m) => (isHasId(m) ? String(m.id) === movieId : false)) ??
+      false
+    );
   }, [list, movie]);
 
   const toggleMyList = async () => {
@@ -96,10 +118,7 @@ export default function Modal() {
   };
 
   useEffect(() => {
-    if (!movie) {
-      setTrailerKey(null);
-      return;
-    }
+    if (!movie) return;
 
     const apiKey = process.env.NEXT_PUBLIC_API_KEY;
     if (!apiKey) {
@@ -133,8 +152,17 @@ export default function Modal() {
         if (fetchIdRef.current !== myFetchId) return;
 
         setTrailerKey(pick?.key ?? null);
-      } catch (err: any) {
-        if (err?.name !== "AbortError") console.log(err?.message || err);
+      } catch (err: unknown) {
+        if (err instanceof DOMException && err.name === "AbortError") return;
+
+        const message =
+          err instanceof Error
+            ? err.message
+            : typeof err === "string"
+              ? err
+              : JSON.stringify(err);
+
+        console.log(message);
       }
     }
 
@@ -213,7 +241,7 @@ export default function Modal() {
                               playsinline: 1,
                             },
                           },
-                        } as any
+                        } as ReactPlayerProps["config"]
                       }
                     />
                   </div>
