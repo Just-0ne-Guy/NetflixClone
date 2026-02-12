@@ -18,8 +18,13 @@ import AccountAvatarMenu from "@/components/AccountAvatarMenu";
 import { goToBillingPortal } from "@/lib/stripe";
 import type { Timestamp } from "firebase/firestore";
 
-
-type LooseTimestamp = Timestamp | { seconds: number } | number | Date | null | undefined;
+type LooseTimestamp =
+  | Timestamp
+  | { seconds: number }
+  | number
+  | Date
+  | null
+  | undefined;
 
 type SubscriptionItem = {
   price?: { id?: string };
@@ -27,11 +32,28 @@ type SubscriptionItem = {
   [key: string]: unknown;
 };
 
+type StripeProductLite = {
+  name?: string;
+  metadata?: Record<string, string>;
+};
+
+type PriceLite = {
+  id?: string;
+  nickname?: string | null;
+  // can be a string id OR an expanded object depending on what you stored
+  product?: string | StripeProductLite | null;
+  metadata?: Record<string, string>;
+};
+
+type SubItemLite = {
+  price?: PriceLite | null;
+};
+
 type SubDoc = {
   status?: string;
-  current_period_end?: LooseTimestamp;
-  created?: LooseTimestamp;
-  items?: SubscriptionItem[];
+  current_period_end?: unknown;
+  created?: unknown;
+  items?: SubItemLite[];
 };
 
 function toDateLabel(ts: LooseTimestamp) {
@@ -108,12 +130,15 @@ export default function AccountPage() {
   }, [user?.uid]);
 
   const planName = useMemo(() => {
-    const maybe =
-      sub?.items?.[0]?.price?.product?.name ||
-      sub?.items?.[0]?.price?.product?.metadata?.name ||
-      sub?.items?.[0]?.price?.nickname ||
-      null;
-    return maybe ?? "—";
+    const price = sub?.items?.[0]?.price;
+
+    const product = price?.product;
+    const productName =
+      typeof product === "object" && product
+        ? product.name || product.metadata?.name
+        : null;
+
+    return productName || price?.nickname || "-";
   }, [sub]);
 
   return (
@@ -194,7 +219,7 @@ export default function AccountPage() {
                   >
                     <span className="text-lg font-semibold">
                       {portalLoading
-                        ? `Opening billing portal...` 
+                        ? `Opening billing portal...`
                         : "Manage membership"}
                     </span>
                     <ChevronRightIcon className="h-5 w-5 text-white/70" />
