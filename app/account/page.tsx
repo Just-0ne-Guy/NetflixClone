@@ -56,7 +56,8 @@ type SubDoc = {
   items?: SubItemLite[];
 };
 
-function toDateLabel(ts: LooseTimestamp) {
+function toDateLabel(ts: unknown) {
+
   try {
     if (!ts) return "--";
 
