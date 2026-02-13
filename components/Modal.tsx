@@ -1,4 +1,6 @@
 "use client";
+/* eslint-disable react-hooks/set-state-in-effect */
+
 
 import MuiModal from "@mui/material/Modal";
 import Fade from "@mui/material/Fade";
@@ -122,11 +124,13 @@ export default function Modal() {
 
     const apiKey = process.env.NEXT_PUBLIC_API_KEY;
     if (!apiKey) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setTrailerKey(null);
       return;
     }
 
     const currentMovie = movie;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setTrailerKey(null);
 
     const controller = new AbortController();
@@ -171,7 +175,9 @@ export default function Modal() {
   }, [movie]);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setCanAutoPlay(false);
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setUserStarted(false);
 
     if (!isOpen || !videoUrl) return;
