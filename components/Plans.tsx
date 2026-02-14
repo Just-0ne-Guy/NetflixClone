@@ -1,6 +1,5 @@
 "use client";
 
-import type { Product } from "@stripe/firestore-stripe-payments";
 import Head from "next/head";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
@@ -10,12 +9,7 @@ import Loader from "./Loader";
 import { addDoc, collection, onSnapshot } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 
-type CheckoutSessionDoc = {
-  url?: string;
-  error?: { message?: string };
-};
-
-type PlanPrice = {
+export type PlanPrice = {
   id: string;
   unit_amount?: number | null;
   active?: boolean;
@@ -26,14 +20,19 @@ type PlanPrice = {
   [key: string]: unknown;
 };
 
-type PlanProduct = {
+export type PlanProduct = {
   id: string;
   name?: string;
   description?: string | null;
   active?: boolean;
-  metadata?: Record<string, string>;
+  metadata?: Record<string, unknown>;
   prices?: PlanPrice[];
   [key: string]: unknown;
+};
+
+type CheckoutSessionDoc = {
+  url?: string;
+  error?: { message?: string };
 };
 
 async function startCheckout(uid: string, priceId: string) {
@@ -65,7 +64,7 @@ async function startCheckout(uid: string, priceId: string) {
 }
 
 interface Props {
-  products: Product[];
+  products: PlanProduct[];
 }
 
 function safeNum(value: unknown, fallback: number) {
